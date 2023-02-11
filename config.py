@@ -14,3 +14,5 @@ res = requests.post('https://www.reddit.com/api/v1/access_token',
 TOKEN = res.json()['access_token']
 
 headers = {**headers, **{'Authorization': f"bearer {TOKEN}"}}
+
+print("hello")
