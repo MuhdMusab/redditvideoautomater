@@ -37,3 +37,13 @@ class Post:
                 comment_list.append(comment)
             self.set_top_level_comments(comment_list)
             return comment_list
+
+    def to_dict(self):
+        return {
+            "id": self.id, 
+            "title": self.title, 
+            "url": self.url,
+            "content": self.content,
+            "upvotes": self.upvotes,
+            "full_id": self.full_id,
+        }
