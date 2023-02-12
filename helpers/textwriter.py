@@ -1,6 +1,6 @@
 class TextWriter:
     def __init__(self, filename):
-        self.filename = filename + ".txt"
+        self.filename = filename + ".json"
 
     def write_to_file(self, content):
         f = open(self.filename, "w")
