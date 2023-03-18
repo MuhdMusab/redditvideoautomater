@@ -1,9 +1,7 @@
 import multiprocessing
 from moviepy.editor import *
 from moviepy.video.fx.resize import resize
-from PIL import ImageFont, ImageDraw, Image
 from moviepy.video.fx.crop import crop
-import time
 import random
 import math
 

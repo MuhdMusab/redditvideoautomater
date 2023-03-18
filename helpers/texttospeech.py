@@ -1,7 +1,4 @@
-import asyncio
 import edge_tts
-from gtts import gTTS
-from nanoid import generate
 
 class TextToSpeechGenerator:
     @staticmethod

@@ -1,25 +1,17 @@
-import random
 import requests
 import json
 from helpers.postscraper import PostScraper
 from models.post import Post
-from models.comment import Comment 
 from helpers.textwriter import TextWriter
 from helpers.videocreator import VideoCreator 
 import asyncio
-from helpers.texttospeech import TextToSpeechGenerator
-from models.title_image import TitleImage
 from realconfig import headers
-from playwright.async_api import async_playwright, ViewportSize
 import os
 from nanoid import generate
 from helpers.videodownloader import VideoDownloader
 from moviepy.editor import *
-from moviepy.video.fx.all import crop
 from mutagen.mp3 import MP3
 import glob
-from PIL import Image, ImageOps
-import time
 
 #queries 100 posts
 params = {'limit': 100}
