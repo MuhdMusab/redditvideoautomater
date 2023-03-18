@@ -1,2 +1,5 @@
 realconfig.py
 *.pyc
+post_list.json
+*.png
+*.mp4
