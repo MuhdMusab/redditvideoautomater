@@ -6,8 +6,8 @@ class TextReader:
         try:
             f = open(self.filename, "r")
             content = f.readlines()
-            print(content)
             f.close()
             return content
-        except:
+        except Exception as e:
+            print(e)
             return None

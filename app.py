@@ -1,21 +1,41 @@
+import random
 import requests
 import json
+from helpers.postscraper import PostScraper
 from models.post import Post
 from models.comment import Comment 
 from helpers.textwriter import TextWriter
+from helpers.videocreator import VideoCreator 
 import asyncio
 from helpers.texttospeech import TextToSpeechGenerator
-from config import headers
+from models.title_image import TitleImage
+from realconfig import headers
 from playwright.async_api import async_playwright, ViewportSize
 import os
 from nanoid import generate
-
+from helpers.videodownloader import VideoDownloader
+from moviepy.editor import *
+from moviepy.video.fx.all import crop
+from mutagen.mp3 import MP3
+import glob
+from PIL import Image, ImageOps
+import time
 
 #queries 100 posts
 params = {'limit': 100}
 post_list = []
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/opt/homebrew/Cellar/ffmpeg/5.1/bin/ffmpeg"
 
-def get_posts():
+def get_video_length(folder_name):
+    mp3_files = glob.glob(f"{folder_name}/*.mp3")
+    num_of_mp3_files = len(mp3_files)
+    video_length = 0
+    print(num_of_mp3_files)
+    for i in range(num_of_mp3_files - 1):
+        video_length += MP3(f"{folder_name}/{i}.mp3").info.length
+    return video_length
+
+async def get_posts(subreddit):
     try:
         with open('post_list.json') as f:
             json_data = json.load(f)
@@ -23,7 +43,7 @@ def get_posts():
                 post = Post(post_json['id'], post_json['title'], post_json['url'], post_json['content'], post_json['upvotes'])
                 post_list.append(post)
     except:
-        res = requests.get("https://oauth.reddit.com/r/maliciouscompliance/new",
+        res = requests.get(f"https://oauth.reddit.com/r/{subreddit}/new",
                         headers=headers, params=params)
         for index, post_json in enumerate(res.json()['data']['children']):
             post = Post.get_post_from_json(post_json, index)
@@ -42,53 +62,35 @@ def get_posts():
             tw = TextWriter('a')
             tw.write_to_file(params['after'])
 
-async def get_paragraph_screenshots(folder_name):
-    async with async_playwright() as p:
-        browser, page = await initialise_page(folder_name, p)
-        post = await page.query_selector('[data-test-id="post-content"]')
-        title = await page.query_selector('[data-adclicklocation="title"]')
+def remove_post_from_json(post_list):
+    post_list.pop(0)
+    with open('post_list.json') as f:
+            json_data = json.load(f)
+            json_data['posts'].pop(0)
+            print(json_data['posts'][0])
+            tw = TextWriter('post_list')
+            output_json = json.dumps(json_data)
+            tw.write_to_file(output_json)
+def run():
+    print('Enter the name of a subreddit:', end=' ')
+    subreddit = input()
+    print('How many videos would you like?:', end=' ')
+    number_of_videos = int(input())
+    asyncio.run(get_posts(subreddit))
+    for i in range(number_of_videos):
+        folder_name = generate()
+        asyncio.run(PostScraper(post_list).get_paragraph_screenshots_and_audio(folder_name))
+        video_length = get_video_length(folder_name)
+        mp3_files = glob.glob(f"{folder_name}/*.mp3")
+        num_of_mp3_files = len(mp3_files)
+        if not os.path.exists("vid.mp4"):
+            VideoDownloader.download_video("https://www.youtube.com/watch?v=n_Dv4JMiwK8", "vid.mp4")
+        try:
+            VideoCreator.create_video(num_of_mp3_files, folder_name)
+        except Exception as e:
+            print(e)
+            remove_post_from_json(post_list)
+            continue
+        remove_post_from_json(post_list)
 
-        #screenshot title
-        await title.screenshot(path=f"{folder_name}/title.png")
-
-        #start of the post's body
-        post_body = await post.query_selector(':nth-child(5) > :nth-child(1)')
-        children = await post_body.query_selector_all('p')
-        for i, paragraph in enumerate(children):
-            #skip paragraph breaks from being screenshotted
-            if (await paragraph.inner_html() != "<br>"):
-                await paragraph.screenshot(path=f"{folder_name}/paragraph_{i+1}.png")
-
-        await browser.close()
-
-async def initialise_page(folder_name, p):
-    #code adapted from https://github.com/elebumm/RedditVideoMakerBot/blob/master/video_creation/screenshot_downloader.py to optimise screenshot quality
-    browser = await p.chromium.launch()
-    os.mkdir(folder_name)
-    W = 1080
-    H = 1920
-    dsf = (W // 600) + 1
-
-    context = await browser.new_context(viewport=ViewportSize(width=W, height=H), device_scale_factor=dsf)
-    page = await context.new_page()
-    await page.set_viewport_size(ViewportSize(width=W, height=H))
-
-        # Navigate to the reddit post and select the post element
-    url = post_list[0].url 
-    await page.goto(url)
-    return browser,page
-
-def get_audio(folder_name):
-    TextToSpeechGenerator.get_speech_from_post(post_list[0].content, f"{folder_name}/audio.mp3")
-
-
-get_posts()
-folder_name = generate()
-asyncio.run(get_paragraph_screenshots(folder_name))
-get_audio(folder_name)
-
-
-
-
-
-
+run()
