@@ -1,8 +1,13 @@
+import asyncio
+import edge_tts
 from gtts import gTTS
 from nanoid import generate
 
 class TextToSpeechGenerator:
     @staticmethod
-    def get_speech_from_post(content, pathname):
-        tts = gTTS(content)
-        tts.save(pathname)
+    async def get_speech_from_post(content, pathname):
+        OUTPUT_FILE = pathname + ".mp3" 
+        voices = await edge_tts.VoicesManager.create()
+        voice = voices.find(Gender="Male", Language="en")[4]["Name"]
+        communicate = edge_tts.Communicate(content, voice)
+        await communicate.save(OUTPUT_FILE)
