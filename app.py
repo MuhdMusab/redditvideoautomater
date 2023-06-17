@@ -1,5 +1,6 @@
 import requests
 import json
+from helpers.postjsonwriter import PostJsonWriter
 from helpers.postscraper import PostScraper
 from models.post import Post
 from helpers.textwriter import TextWriter
@@ -18,27 +19,15 @@ params = {'limit': 100}
 post_list = []
 os.environ["IMAGEIO_FFMPEG_EXE"] = <filepath to ffmpeg>
 
-def get_video_length(folder_name):
-    mp3_files = glob.glob(f"{folder_name}/*.mp3")
-    num_of_mp3_files = len(mp3_files)
-    video_length = 0
-    print(num_of_mp3_files)
-    for i in range(num_of_mp3_files - 1):
-        video_length += MP3(f"{folder_name}/{i}.mp3").info.length
-    return video_length
-
-async def get_posts(subreddit):
+async def get_posts(subreddit, post_json_writer):
     try:
-        with open('post_list.json') as f:
-            json_data = json.load(f)
-            for post_json in json_data['posts']:
-                post = Post(post_json['id'], post_json['title'], post_json['url'], post_json['content'], post_json['upvotes'])
-                post_list.append(post)
+        post_json_writer.append_post_to_post_list(post_list)
     except:
         res = requests.get(f"https://oauth.reddit.com/r/{subreddit}/new",
                         headers=headers, params=params)
         for index, post_json in enumerate(res.json()['data']['children']):
             post = Post.get_post_from_json(post_json, index)
+            #retrieve "popular" posts with upvotes greater than 4000
             if post.upvotes >= 4000:
                 post_list.append(post)
                 params['after'] = post.full_id
@@ -54,25 +43,16 @@ async def get_posts(subreddit):
             tw = TextWriter('a')
             tw.write_to_file(params['after'])
 
-def remove_post_from_json(post_list):
-    post_list.pop(0)
-    with open('post_list.json') as f:
-            json_data = json.load(f)
-            json_data['posts'].pop(0)
-            print(json_data['posts'][0])
-            tw = TextWriter('post_list')
-            output_json = json.dumps(json_data)
-            tw.write_to_file(output_json)
 def run():
     print('Enter the name of a subreddit:', end=' ')
     subreddit = input()
     print('How many videos would you like?:', end=' ')
     number_of_videos = int(input())
-    asyncio.run(get_posts(subreddit))
+    post_json_writer = PostJsonWriter()
+    asyncio.run(get_posts(subreddit, post_json_writer))
     for _ in range(number_of_videos):
         folder_name = generate()
         asyncio.run(PostScraper(post_list).get_paragraph_screenshots_and_audio(folder_name))
-        video_length = get_video_length(folder_name)
         mp3_files = glob.glob(f"{folder_name}/*.mp3")
         num_of_mp3_files = len(mp3_files)
         if not os.path.exists("vid.mp4"):
@@ -81,8 +61,8 @@ def run():
             VideoCreator.create_video(num_of_mp3_files, folder_name)
         except Exception as e:
             print(e)
-            remove_post_from_json(post_list)
+            post_json_writer.remove_post_from_json(post_list)
             continue
-        remove_post_from_json(post_list)
+        post_json_writer.remove_post_from_json(post_list)
 
 run()
