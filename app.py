@@ -16,7 +16,7 @@ import glob
 #queries 100 posts
 params = {'limit': 100}
 post_list = []
-os.environ["IMAGEIO_FFMPEG_EXE"] = "/opt/homebrew/Cellar/ffmpeg/5.1/bin/ffmpeg"
+os.environ["IMAGEIO_FFMPEG_EXE"] = <filepath to ffmpeg>
 
 def get_video_length(folder_name):
     mp3_files = glob.glob(f"{folder_name}/*.mp3")
@@ -69,7 +69,7 @@ def run():
     print('How many videos would you like?:', end=' ')
     number_of_videos = int(input())
     asyncio.run(get_posts(subreddit))
-    for i in range(number_of_videos):
+    for _ in range(number_of_videos):
         folder_name = generate()
         asyncio.run(PostScraper(post_list).get_paragraph_screenshots_and_audio(folder_name))
         video_length = get_video_length(folder_name)
